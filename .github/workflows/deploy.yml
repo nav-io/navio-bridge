@@ -24,7 +24,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      # --ignore-scripts: navio-blsct's install script runs a native node-gyp
+      # build (needs build-essential) that the web bundle does not use — it
+      # consumes the prebuilt WASM shipped in the package. dist/ + wasm/ ship
+      # prebuilt, and vite 8's bundler (rolldown) needs no postinstall.
+      - run: npm ci --ignore-scripts
       - run: npm run build
       # SPA fallback: GitHub Pages serves 404.html for unknown paths;
       # a copy of index.html lets react-router (BrowserRouter) handle deep links.
