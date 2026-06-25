@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavcoinHeight } from '../hooks/useNavcoinHeight';
-
-const SWAP_START = 10_500_000;
-const SWAP_END = 11_000_000;
-const BLOCK_SECONDS = 30;
-
-type Phase = 'pre' | 'active' | 'ended';
+import { SWAP_START, SWAP_END, BLOCK_SECONDS, phaseFor, projectHeight, type SwapPhase } from '../lib/swap';
 
 interface View {
-  phase: Phase;
+  phase: SwapPhase;
   label: string;
   value: string;
   detail: string;
@@ -84,10 +79,9 @@ export function SwapCountdown() {
 }
 
 function buildView(height: number, now: number, fetchedAt: number | null): View {
-  const drift = fetchedAt ? Math.floor((now - fetchedAt) / 1000 / BLOCK_SECONDS) : 0;
-  const projected = height + drift;
+  const projected = projectHeight(height, fetchedAt, now);
 
-  if (projected < SWAP_START) {
+  if (phaseFor(projected) === 'pre') {
     const secs = (SWAP_START - projected) * BLOCK_SECONDS;
     return {
       phase: 'pre',

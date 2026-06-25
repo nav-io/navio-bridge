@@ -2,6 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { ConnectButton } from '../components/ConnectButton';
 import { NAVIO_NETWORK } from '../lib/contracts';
+import { useSwapPhase } from '../hooks/useSwapPhase';
 
 const navLinks = [
   { to: '/', label: 'Deposit' },
@@ -10,6 +11,10 @@ const navLinks = [
 ];
 
 export function Header() {
+  // Withdraw (burn wNAV → redeem NAV) only makes sense once the swap is live.
+  const { started } = useSwapPhase();
+  const links = navLinks.filter((l) => l.to !== '/withdraw' || started);
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-navy/80 backdrop-blur-xl">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
@@ -24,7 +29,7 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-0.5 rounded-full border border-white/10 bg-white/[0.03] p-0.5">
-          {navLinks.map(({ to, label }) => (
+          {links.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
