@@ -1,5 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { SwapCountdown } from './SwapCountdown';
+import { examplePlaceholder } from '../lib/deriveNavAddress';
 
 export function Intro() {
   return (
@@ -33,7 +34,7 @@ export function Intro() {
         <Step
           n="02"
           title="Burn to Navio"
-          body="Burn wNAV with your navio1… address as the note. The bridge credits native NAVIO."
+          body={`Burn wNAV with your ${examplePlaceholder()} address as the note. The bridge credits native NAVIO.`}
           accent="pink"
         />
       </div>
