@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBurnHistory, type BurnEntry } from '../hooks/useBurnHistory';
 import { useNavioAudit } from '../hooks/useNavioAudit';
-import { useNavioPayoutsApi, type OutgoingEntry } from '../hooks/useNavioPayoutsApi';
+import { useNavioPayoutsApi, type OutgoingEntry, type StakeEventEntry } from '../hooks/useNavioPayoutsApi';
 import { Panel } from '../components/Panel';
 import { AUDIT_CONFIG } from '../lib/contracts';
 import { formatUnits } from 'viem';
@@ -125,6 +125,17 @@ export function AuditPage() {
           }
         />
         <ActivityTable burn={burn.entries} navio={active.outgoing} />
+      </section>
+
+      <section>
+        <SectionHeader title="Staking" />
+        {source === 'indexer' ? (
+          <StakeTable events={api.stakeEvents} netStaked={api.netStaked} />
+        ) : (
+          <div className="mt-2 text-[11px] text-white/40 text-center sm:text-left">
+            Stake / unstake events are available from the blocks.nav.io indexer source.
+          </div>
+        )}
       </section>
     </div>
   );
@@ -417,6 +428,64 @@ function ActivityTable({ burn, navio }: { burn: BurnEntry[]; navio: OutgoingEntr
                 secondary={`${fmtNav(BigInt(n.amount))} NAVIO`}
                 tail={short(n.hash)}
                 href={`https://blocks.nav.io/tx/${n.hash}`}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StakeTable({ events, netStaked }: { events: StakeEventEntry[]; netStaked: bigint }) {
+  const stakes = events.filter((e) => e.type === 'stake');
+  const unstakes = events.filter((e) => e.type === 'unstake');
+
+  if (events.length === 0) {
+    return (
+      <div className="glow-card !p-6 text-center text-sm text-white/50">
+        No stake activity yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="glow-card !p-0 overflow-hidden">
+      <div className="px-5 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+        <span className="mono text-[10px] tracking-[0.2em] uppercase text-white/55">Currently staked (net)</span>
+        <span className="mono text-[11px] text-white/70">{fmtNav(netStaked)} NAVIO</span>
+      </div>
+      <div className="grid grid-cols-2">
+        <ColumnHeader title="Locked (stake)" count={stakes.length} />
+        <ColumnHeader title="Unlocked (unstake)" count={unstakes.length} />
+      </div>
+      <div className="grid grid-cols-2">
+        <div>
+          {stakes.length === 0 ? (
+            <EmptyRow />
+          ) : (
+            stakes.slice(0, 50).map((s) => (
+              <Row
+                key={s.hash}
+                primary={`block #${s.block}`}
+                secondary={`${fmtNav(BigInt(s.amount))} NAVIO`}
+                tail={short(s.hash)}
+                href={`https://blocks.nav.io/tx/${s.hash}`}
+              />
+            ))
+          )}
+        </div>
+        <div className="border-l border-white/5">
+          {unstakes.length === 0 ? (
+            <EmptyRow />
+          ) : (
+            unstakes.slice(0, 50).map((s) => (
+              <Row
+                key={s.hash}
+                primary={`block #${s.block}`}
+                secondary={`${fmtNav(BigInt(s.amount))} NAVIO`}
+                tail={short(s.hash)}
+                href={`https://blocks.nav.io/tx/${s.hash}`}
               />
             ))
           )}
