@@ -112,7 +112,7 @@ export function useNavioAudit(enabled: boolean = true): {
         if (cancelled) return;
         setStatus('syncing');
 
-        const tip = await client.sync({
+        await client.sync({
           onProgress: (currentHeight, tipHeight, blocks, txKeys) => {
             if (cancelled) return;
             setProgress({ height: currentHeight, tip: tipHeight, blocks, txKeys });
@@ -122,6 +122,10 @@ export function useNavioAudit(enabled: boolean = true): {
         });
         if (cancelled) return;
         setProgress(null);
+        // client.sync() returns blocks-processed-this-run, not the chain tip;
+        // read the real tip so the synced height is correct after an
+        // incremental sync (not just a fresh one).
+        const tip = (await client.getChainTip()).height;
         setChainTip(tip);
 
         const outputs = await client.getAllOutputs();
