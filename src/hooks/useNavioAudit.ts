@@ -17,7 +17,7 @@ interface NavioCache {
   updatedAt: number;
 }
 
-const CACHE_KEY = 'navio-bridge.audit.v1';
+const CACHE_KEY = 'navio-bridge.audit.v2';
 
 function readCache(auditKey: string): NavioCache | null {
   try {

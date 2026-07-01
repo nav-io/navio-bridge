@@ -47,8 +47,10 @@ export const AUDIT_CONFIG = {
    * Lets anyone sync the wallet read-only and verify outgoing flows.
    */
   auditKey: (import.meta.env.VITE_AUDIT_KEY as string | undefined) || '',
-  /** Navio wallet DB name (IndexedDB). */
-  walletDbName: 'navio-audit-wallet',
+  /** Navio wallet DB name (IndexedDB). Bump the suffix to force every browser
+   *  to re-sync from scratch after a chain reset (a stale cached wallet resumes
+   *  from an old height and reports a wrong synced tip). */
+  walletDbName: 'navio-audit-wallet-v2',
   /** Electrum server used for read-only sync. */
   electrum: {
     host:
