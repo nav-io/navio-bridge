@@ -130,7 +130,7 @@ export function AuditPage() {
       <section>
         <SectionHeader title="Staking" />
         {source === 'indexer' ? (
-          <StakeTable events={api.stakeEvents} netStaked={api.netStaked} />
+          <StakeTable events={api.stakeEvents} netStaked={api.netStaked} earnedRewards={api.earnedRewards} />
         ) : (
           <div className="mt-2 text-[11px] text-white/40 text-center sm:text-left">
             Stake / unstake events are available from the blocks.nav.io indexer source.
@@ -437,20 +437,29 @@ function ActivityTable({ burn, navio }: { burn: BurnEntry[]; navio: OutgoingEntr
   );
 }
 
-function StakeTable({ events, netStaked }: { events: StakeEventEntry[]; netStaked: bigint }) {
+function StakeTable({ events, netStaked, earnedRewards }: { events: StakeEventEntry[]; netStaked: bigint; earnedRewards: bigint }) {
   const stakes = events.filter((e) => e.type === 'stake');
   const unstakes = events.filter((e) => e.type === 'unstake');
 
+  const rewardsRow = (
+    <div className="px-5 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+      <span className="mono text-[10px] tracking-[0.2em] uppercase text-white/55">Earned rewards</span>
+      <span className="mono text-[11px] text-emerald-300/80">{fmtNav(earnedRewards)} NAVIO</span>
+    </div>
+  );
+
   if (events.length === 0) {
     return (
-      <div className="glow-card !p-6 text-center text-sm text-white/50">
-        No stake activity yet.
+      <div className="glow-card !p-0 overflow-hidden">
+        {rewardsRow}
+        <div className="!p-6 text-center text-sm text-white/50">No stake activity yet.</div>
       </div>
     );
   }
 
   return (
     <div className="glow-card !p-0 overflow-hidden">
+      {rewardsRow}
       <div className="px-5 py-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
         <span className="mono text-[10px] tracking-[0.2em] uppercase text-white/55">Currently staked (net)</span>
         <span className="mono text-[11px] text-white/70">{fmtNav(netStaked)} NAVIO</span>

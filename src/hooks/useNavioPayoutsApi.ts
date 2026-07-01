@@ -18,6 +18,7 @@ interface Cache {
   outgoing: OutgoingEntry[];
   stakeEvents: StakeEventEntry[];
   netStaked: string;
+  earnedRewards: string;
   balance: string;
   syncedHeight: number;
   chainTip: number;
@@ -52,6 +53,7 @@ interface SummaryResp {
   indexed: boolean;
   summary: {
     balance_sat: string;
+    earned_rewards_sat?: string;
     synced_height: number;
     chain_tip: number;
     error_message: string | null;
@@ -82,6 +84,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
   outgoing: OutgoingEntry[];
   stakeEvents: StakeEventEntry[];
   netStaked: bigint;
+  earnedRewards: bigint;
   totalPaidOut: bigint;
   balance: bigint;
   syncedHeight: number;
@@ -93,6 +96,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
   const [outgoing, setOutgoing] = useState<OutgoingEntry[]>([]);
   const [stakeEvents, setStakeEvents] = useState<StakeEventEntry[]>([]);
   const [netStaked, setNetStaked] = useState<bigint>(0n);
+  const [earnedRewards, setEarnedRewards] = useState<bigint>(0n);
   const [balance, setBalance] = useState<bigint>(0n);
   const [syncedHeight, setSyncedHeight] = useState(0);
   const [chainTip, setChainTip] = useState<number | null>(null);
@@ -105,6 +109,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
       setOutgoing(cached.outgoing);
       setStakeEvents(cached.stakeEvents ?? []);
       setNetStaked(BigInt(cached.netStaked ?? '0'));
+      setEarnedRewards(BigInt(cached.earnedRewards ?? '0'));
       setBalance(BigInt(cached.balance));
       setSyncedHeight(cached.syncedHeight);
       setChainTip(cached.chainTip);
@@ -166,11 +171,13 @@ export function useNavioPayoutsApi(enabled: boolean): {
           /* stakes are optional; older indexers may not expose them */
         }
         const netStakedSat = BigInt(summary.net_staked_sat ?? '0');
+        const earnedRewardsSat = BigInt(summary.summary.earned_rewards_sat ?? '0');
 
         const bal = BigInt(summary.summary.balance_sat);
         setOutgoing(collected);
         setStakeEvents(stakes);
         setNetStaked(netStakedSat);
+        setEarnedRewards(earnedRewardsSat);
         setBalance(bal);
         setSyncedHeight(summary.summary.synced_height);
         setChainTip(summary.summary.chain_tip);
@@ -179,6 +186,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
           outgoing: collected,
           stakeEvents: stakes,
           netStaked: netStakedSat.toString(),
+          earnedRewards: earnedRewardsSat.toString(),
           balance: bal.toString(),
           syncedHeight: summary.summary.synced_height,
           chainTip: summary.summary.chain_tip,
@@ -202,7 +210,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
   const totalPaidOut = outgoing.reduce((a, e) => a + BigInt(e.amount), 0n);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 
-  return { status, outgoing, stakeEvents, netStaked, totalPaidOut, balance, syncedHeight, chainTip, error, refresh };
+  return { status, outgoing, stakeEvents, netStaked, earnedRewards, totalPaidOut, balance, syncedHeight, chainTip, error, refresh };
 }
 
 function mapEntry(r: OutgoingResp['data'][number]): OutgoingEntry {
