@@ -22,7 +22,7 @@ export function phaseFor(projected: number): SwapPhase {
  * height. Opens withdrawals 2026-07-02 16:00–17:00 UTC. Remove after it closes.
  */
 export const TEMP_WITHDRAW_OPEN = Date.UTC(2026, 6, 2, 16, 0, 0);
-export const TEMP_WITHDRAW_CLOSE = Date.UTC(2026, 6, 2, 17, 0, 0);
+export const TEMP_WITHDRAW_CLOSE = Date.UTC(2026, 6, 2, 18, 0, 0);
 
 export function inTempWithdrawWindow(now: number): boolean {
   return now >= TEMP_WITHDRAW_OPEN && now < TEMP_WITHDRAW_CLOSE;
