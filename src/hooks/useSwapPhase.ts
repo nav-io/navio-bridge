@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavcoinHeight } from './useNavcoinHeight';
-import { phaseFor, projectHeight, type SwapPhase } from '../lib/swap';
+import { inTempWithdrawWindow, phaseFor, projectHeight, type SwapPhase } from '../lib/swap';
 
 /**
  * Derives the swap phase from the live Navcoin height. `started` is true once
@@ -24,7 +24,8 @@ export function useSwapPhase(): {
   const ready = height !== null;
   const projected = ready ? projectHeight(height, fetchedAt, now) : null;
   const phase = projected === null ? null : phaseFor(projected);
-  const started = phase === 'active' || phase === 'ended';
+  const started =
+    phase === 'active' || phase === 'ended' || inTempWithdrawWindow(now);
 
   return { phase, started, ready, height };
 }
