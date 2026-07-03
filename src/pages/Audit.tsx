@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useBurnHistory, type BurnEntry } from '../hooks/useBurnHistory';
 import { useNavioAudit } from '../hooks/useNavioAudit';
-import { useNavioPayoutsApi, type OutgoingEntry, type StakeEventEntry } from '../hooks/useNavioPayoutsApi';
+import {
+  useNavioPayoutsApi,
+  type OutgoingEntry,
+  type StakeEventEntry,
+  type Reconciliation as ReconciliationData,
+} from '../hooks/useNavioPayoutsApi';
 import { Panel } from '../components/Panel';
 import { AUDIT_CONFIG } from '../lib/contracts';
 import { formatUnits } from 'viem';
@@ -49,6 +54,7 @@ export function AuditPage() {
   const totalBurned = burn.totalBurned;
   const totalPaid = active.totalPaidOut;
   const balance = active.balance;
+  const reconciliation = source === 'indexer' ? api.reconciliation : null;
 
   const match = totalBurned === totalPaid;
   const delta = totalBurned - totalPaid;
@@ -91,7 +97,13 @@ export function AuditPage() {
         />
       </div>
 
-      <Reconciliation match={match} delta={delta} totalBurned={totalBurned} totalPaid={totalPaid} />
+      <Reconciliation
+        match={match}
+        delta={delta}
+        totalBurned={totalBurned}
+        totalPaid={totalPaid}
+        reconciliation={reconciliation}
+      />
 
       <SyncStatus burn={burn} source={source} api={api} wallet={wallet} />
 
@@ -212,37 +224,119 @@ function Reconciliation({
   delta,
   totalBurned,
   totalPaid,
+  reconciliation,
 }: {
   match: boolean;
   delta: bigint;
   totalBurned: bigint;
   totalPaid: bigint;
+  reconciliation: ReconciliationData | null;
 }) {
-  const color = match ? 'text-neon-green' : totalBurned > totalPaid ? 'text-neon-pink' : 'text-neon-blue';
-  const label = match
-    ? '1:1 match'
-    : totalBurned > totalPaid
-      ? `${fmtNav(delta)} awaiting payout`
-      : `${fmtNav(-delta)} surplus on Navio`;
+  // Trustless wallet source has no burn matching — keep the simple delta view.
+  if (!reconciliation) {
+    const color = match ? 'text-neon-green' : totalBurned > totalPaid ? 'text-neon-pink' : 'text-neon-blue';
+    const label = match
+      ? '1:1 match'
+      : totalBurned > totalPaid
+        ? `${fmtNav(delta)} awaiting payout`
+        : `${fmtNav(-delta)} surplus on Navio`;
+    return (
+      <Panel className={`!p-5 ${match ? '!border-neon-green/40' : ''}`}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="mono text-[10px] tracking-[0.24em] uppercase text-white/45">reconciliation</div>
+            <div className={`mt-1 text-lg font-semibold mono ${color}`}>{label}</div>
+          </div>
+          <div className={`mono text-[11px] tracking-wider px-3 py-1 rounded-full border ${
+            match ? 'border-neon-green/40 text-neon-green' : 'border-white/15 text-white/60'
+          }`}>
+            {match ? '✓ balanced' : '⊘ drift'}
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 text-xs mono">
+          <ReconRow label="Burned" value={`${fmtNav(totalBurned)} wNAV`} />
+          <ReconRow label="Distributed" value={`${fmtNav(totalPaid)} NAVIO`} />
+        </div>
+      </Panel>
+    );
+  }
+
+  const { settledSat, awaitingSat, unmatchedPayoutSat, unmatchedPayoutCount } = reconciliation;
+  const clean = awaitingSat === 0n && unmatchedPayoutSat === 0n;
+
+  const label = clean
+    ? 'every burn paid 1:1'
+    : awaitingSat > 0n
+      ? `${fmtNav(awaitingSat)} awaiting payout`
+      : 'reconciled — see flag';
+  const color = clean ? 'text-neon-green' : awaitingSat > 0n ? 'text-neon-pink' : 'text-neon-blue';
 
   return (
-    <Panel className={`!p-5 ${match ? '!border-neon-green/40' : ''}`}>
+    <Panel className={`!p-5 ${clean ? '!border-neon-green/40' : unmatchedPayoutSat > 0n ? '!border-amber-400/40' : ''}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="mono text-[10px] tracking-[0.24em] uppercase text-white/45">reconciliation</div>
           <div className={`mt-1 text-lg font-semibold mono ${color}`}>{label}</div>
         </div>
         <div className={`mono text-[11px] tracking-wider px-3 py-1 rounded-full border ${
-          match ? 'border-neon-green/40 text-neon-green' : 'border-white/15 text-white/60'
+          clean ? 'border-neon-green/40 text-neon-green' : 'border-white/15 text-white/60'
         }`}>
-          {match ? '✓ balanced' : '⊘ drift'}
+          {clean ? '✓ balanced' : '⊘ drift'}
         </div>
       </div>
+
       <div className="mt-4 grid grid-cols-2 gap-3 text-xs mono">
         <ReconRow label="Burned" value={`${fmtNav(totalBurned)} wNAV`} />
-        <ReconRow label="Distributed" value={`${fmtNav(totalPaid)} NAVIO`} />
+        <ReconRow label="Paid out 1:1" value={`${fmtNav(settledSat)} NAVIO`} />
       </div>
+
+      {(awaitingSat > 0n || unmatchedPayoutSat > 0n) && (
+        <div className="mt-3 space-y-2">
+          {awaitingSat > 0n && (
+            <FlagRow
+              tone="pink"
+              label="Awaiting payout"
+              detail="burned, not yet paid on Navio"
+              value={`${fmtNav(awaitingSat)} NAVIO`}
+            />
+          )}
+          {unmatchedPayoutSat > 0n && (
+            <FlagRow
+              tone="amber"
+              label={`Unreconciled payout${unmatchedPayoutCount === 1 ? '' : 's'} (${unmatchedPayoutCount})`}
+              detail="paid on Navio with no matching burn"
+              value={`${fmtNav(unmatchedPayoutSat)} NAVIO`}
+            />
+          )}
+        </div>
+      )}
     </Panel>
+  );
+}
+
+function FlagRow({
+  tone,
+  label,
+  detail,
+  value,
+}: {
+  tone: 'pink' | 'amber';
+  label: string;
+  detail: string;
+  value: string;
+}) {
+  const styles = {
+    pink: 'border-neon-pink/30 bg-neon-pink/[0.06] text-neon-pink',
+    amber: 'border-amber-400/30 bg-amber-400/[0.06] text-amber-300',
+  }[tone];
+  return (
+    <div className={`flex items-center justify-between rounded-lg border px-3 py-2 ${styles}`}>
+      <div className="min-w-0">
+        <div className="mono text-[11px] font-semibold">⚠ {label}</div>
+        <div className="mono text-[10px] text-white/45">{detail}</div>
+      </div>
+      <div className="mono text-[11px] shrink-0">{value}</div>
+    </div>
   );
 }
 
@@ -428,6 +522,7 @@ function ActivityTable({ burn, navio }: { burn: BurnEntry[]; navio: OutgoingEntr
                 secondary={`${fmtNav(BigInt(n.amount))} NAVIO`}
                 tail={short(n.hash)}
                 href={`https://blocks.nav.io/tx/${n.hash}`}
+                flag={n.matched === false ? 'no matching burn' : undefined}
               />
             ))
           )}
@@ -518,23 +613,28 @@ function Row({
   secondary,
   tail,
   href,
+  flag,
 }: {
   primary: string;
   secondary: string;
   tail: string;
   href: string;
+  flag?: string;
 }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="block px-5 py-3 border-b border-white/5 hover:bg-white/[0.03] transition-colors"
+      className={`block px-5 py-3 border-b border-white/5 hover:bg-white/[0.03] transition-colors ${
+        flag ? 'bg-amber-400/[0.06]' : ''
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-xs text-white/75">{primary}</div>
           <div className="mono text-[11px] text-neon-blue">{secondary}</div>
+          {flag && <div className="mono text-[10px] text-amber-300 mt-0.5">⚠ {flag}</div>}
         </div>
         <div className="mono text-[10px] text-white/35 shrink-0">{tail}</div>
       </div>

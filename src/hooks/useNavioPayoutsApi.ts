@@ -4,6 +4,24 @@ export interface OutgoingEntry {
   hash: string;
   block: number;
   amount: string;
+  /**
+   * True when this payout reconciled 1:1 to one or more wNAV burns. Undefined
+   * from the trustless wallet source (which does not run burn matching); only
+   * `matched === false` marks a flagged, unreconciled outflow.
+   */
+  matched?: boolean;
+}
+
+/** Burn↔payout reconciliation snapshot from the indexer. */
+export interface Reconciliation {
+  /** Sum of burns settled 1:1 by a payout (sats) — provably distributed. */
+  settledSat: bigint;
+  /** Sum of burns not yet settled (sats) — burned but awaiting payout. */
+  awaitingSat: bigint;
+  /** Sum of payout outflows matching no burn (sats) — an inconsistency. */
+  unmatchedPayoutSat: bigint;
+  /** Number of payout outflows matching no burn. */
+  unmatchedPayoutCount: number;
 }
 
 export interface StakeEventEntry {
@@ -23,6 +41,12 @@ interface Cache {
   syncedHeight: number;
   chainTip: number;
   updatedAt: number;
+  recon?: {
+    settledSat: string;
+    awaitingSat: string;
+    unmatchedPayoutSat: string;
+    unmatchedPayoutCount: number;
+  };
 }
 
 const API_BASE = import.meta.env.VITE_BLOCKS_API_URL || 'https://blocks.nav.io';
@@ -58,13 +82,17 @@ interface SummaryResp {
     chain_tip: number;
     error_message: string | null;
     updated_at: number;
+    settled_sat?: string;
+    awaiting_sat?: string;
+    unmatched_payout_sat?: string;
+    unmatched_payout_count?: number;
   } | null;
   total_outgoing_sat: string;
   net_staked_sat?: string;
 }
 
 interface OutgoingResp {
-  data: Array<{ spend_tx_hash: string; block_height: number; amount_sat: string }>;
+  data: Array<{ spend_tx_hash: string; block_height: number; amount_sat: string; matched?: boolean }>;
   total: number;
   limit: number;
   offset: number;
@@ -89,6 +117,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
   balance: bigint;
   syncedHeight: number;
   chainTip: number | null;
+  reconciliation: Reconciliation | null;
   error: string | null;
   refresh: () => void;
 } {
@@ -100,6 +129,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
   const [balance, setBalance] = useState<bigint>(0n);
   const [syncedHeight, setSyncedHeight] = useState(0);
   const [chainTip, setChainTip] = useState<number | null>(null);
+  const [reconciliation, setReconciliation] = useState<Reconciliation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
@@ -113,6 +143,14 @@ export function useNavioPayoutsApi(enabled: boolean): {
       setBalance(BigInt(cached.balance));
       setSyncedHeight(cached.syncedHeight);
       setChainTip(cached.chainTip);
+      if (cached.recon) {
+        setReconciliation({
+          settledSat: BigInt(cached.recon.settledSat),
+          awaitingSat: BigInt(cached.recon.awaitingSat),
+          unmatchedPayoutSat: BigInt(cached.recon.unmatchedPayoutSat),
+          unmatchedPayoutCount: cached.recon.unmatchedPayoutCount,
+        });
+      }
     }
   }, []);
 
@@ -173,6 +211,18 @@ export function useNavioPayoutsApi(enabled: boolean): {
         const netStakedSat = BigInt(summary.net_staked_sat ?? '0');
         const earnedRewardsSat = BigInt(summary.summary.earned_rewards_sat ?? '0');
 
+        // Burn↔payout reconciliation (older indexers omit these fields).
+        const s = summary.summary;
+        const recon: Reconciliation | null =
+          s.settled_sat !== undefined
+            ? {
+                settledSat: BigInt(s.settled_sat),
+                awaitingSat: BigInt(s.awaiting_sat ?? '0'),
+                unmatchedPayoutSat: BigInt(s.unmatched_payout_sat ?? '0'),
+                unmatchedPayoutCount: s.unmatched_payout_count ?? 0,
+              }
+            : null;
+
         const bal = BigInt(summary.summary.balance_sat);
         setOutgoing(collected);
         setStakeEvents(stakes);
@@ -181,6 +231,7 @@ export function useNavioPayoutsApi(enabled: boolean): {
         setBalance(bal);
         setSyncedHeight(summary.summary.synced_height);
         setChainTip(summary.summary.chain_tip);
+        setReconciliation(recon);
         writeCache({
           api: API_BASE,
           outgoing: collected,
@@ -191,6 +242,14 @@ export function useNavioPayoutsApi(enabled: boolean): {
           syncedHeight: summary.summary.synced_height,
           chainTip: summary.summary.chain_tip,
           updatedAt: Date.now(),
+          recon: recon
+            ? {
+                settledSat: recon.settledSat.toString(),
+                awaitingSat: recon.awaitingSat.toString(),
+                unmatchedPayoutSat: recon.unmatchedPayoutSat.toString(),
+                unmatchedPayoutCount: recon.unmatchedPayoutCount,
+              }
+            : undefined,
         });
         setStatus('ready');
       } catch (err) {
@@ -210,11 +269,11 @@ export function useNavioPayoutsApi(enabled: boolean): {
   const totalPaidOut = outgoing.reduce((a, e) => a + BigInt(e.amount), 0n);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 
-  return { status, outgoing, stakeEvents, netStaked, earnedRewards, totalPaidOut, balance, syncedHeight, chainTip, error, refresh };
+  return { status, outgoing, stakeEvents, netStaked, earnedRewards, totalPaidOut, balance, syncedHeight, chainTip, reconciliation, error, refresh };
 }
 
 function mapEntry(r: OutgoingResp['data'][number]): OutgoingEntry {
-  return { hash: r.spend_tx_hash, block: r.block_height, amount: r.amount_sat };
+  return { hash: r.spend_tx_hash, block: r.block_height, amount: r.amount_sat, matched: r.matched !== false };
 }
 
 function mapStake(r: StakeEventsResp['data'][number]): StakeEventEntry {
