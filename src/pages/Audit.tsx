@@ -8,6 +8,7 @@ import {
   type Reconciliation as ReconciliationData,
 } from '../hooks/useNavioPayoutsApi';
 import { Panel } from '../components/Panel';
+import { PayoutChart } from '../components/PayoutChart';
 import { AUDIT_CONFIG } from '../lib/contracts';
 import { formatUnits } from 'viem';
 
@@ -104,6 +105,13 @@ export function AuditPage() {
         totalPaid={totalPaid}
         reconciliation={reconciliation}
       />
+
+      <section>
+        <SectionHeader title="Payout progress" />
+        <div className="mt-3">
+          <PayoutChart outgoing={active.outgoing} />
+        </div>
+      </section>
 
       <SyncStatus burn={burn} source={source} api={api} wallet={wallet} />
 
