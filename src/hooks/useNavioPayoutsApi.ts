@@ -12,6 +12,14 @@ export interface OutgoingEntry {
   matched?: boolean;
 }
 
+/** A wNAV burn with no matching Navio payout yet — a pending payout. */
+export interface AwaitingBurn {
+  txHash: string | null;
+  amount: string;
+  timestamp: number;
+  note: string | null;
+}
+
 /** Burn↔payout reconciliation snapshot from the indexer. */
 export interface Reconciliation {
   /** Sum of burns settled 1:1 by a payout (sats) — provably distributed. */
@@ -41,6 +49,7 @@ interface Cache {
   syncedHeight: number;
   chainTip: number;
   updatedAt: number;
+  awaitingBurns?: AwaitingBurn[];
   recon?: {
     settledSat: string;
     awaitingSat: string;
