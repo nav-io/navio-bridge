@@ -41,15 +41,16 @@ function fmtTooltipDate(ts: number): string {
   });
 }
 
-/** Clean tick values from 0 to just above max. */
+/** Clean tick values from 0 up to the first tick at or above max, so the
+ *  top gridline always contains the data. */
 function niceTicks(max: number, count = 4): number[] {
   if (max <= 0) return [0];
   const rough = max / count;
   const mag = 10 ** Math.floor(Math.log10(rough));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= rough) ?? 10 * mag;
-  const ticks: number[] = [];
-  for (let v = 0; v <= max + step * 0.001; v += step) ticks.push(v);
-  return ticks;
+  const step =
+    [1, 1.5, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= rough) ?? 10 * mag;
+  const n = Math.ceil(max / step - 1e-9);
+  return Array.from({ length: n + 1 }, (_, i) => i * step);
 }
 
 export function PayoutChart({ outgoing }: { outgoing: OutgoingEntry[] }) {
