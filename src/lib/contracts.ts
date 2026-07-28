@@ -26,6 +26,8 @@ export const BRIDGE_CONFIG = {
   feeMint: 1.25,
   navConfirmations: 1,
   defaultNavFee: 100000,
+  /** Deposits below this are eaten by the mint fee — surface it so users don't send dust. */
+  minDepositNav: 10,
 };
 
 /** Block at which the wNAV BEP-20 contract was deployed. Used to scope getLogs queries. */

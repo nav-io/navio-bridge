@@ -115,7 +115,16 @@ export function DepositPage() {
         <a href={`navcoin:${navAddress}`} className="ghost-btn !px-3 !py-1.5 !text-xs">Open wallet</a>
       </div>
 
-      <div className="mt-8 pt-5 border-t border-white/5 text-xs text-white/45 space-y-1.5 mono">
+      <p className="mt-5 rounded-lg border border-neon-pink/25 bg-neon-pink/[0.06] px-3 py-2.5 text-center text-xs text-white/70">
+        Send at least <span className="font-semibold text-white">~{BRIDGE_CONFIG.minDepositNav} NAV</span>.
+        Smaller deposits are consumed by the bridge fee and cannot be recovered.
+      </p>
+
+      <div className="mt-6 pt-5 border-t border-white/5 text-xs text-white/45 space-y-1.5 mono">
+        <Row
+          label="Minimum deposit"
+          value={`~${BRIDGE_CONFIG.minDepositNav} NAV`}
+        />
         <Row
           label="Fee"
           value={
