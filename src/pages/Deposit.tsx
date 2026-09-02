@@ -1,3 +1,4 @@
+import { SWAPS_DISABLED } from '../lib/maintenance';
 import { useEffect, useMemo, useState } from 'react';
 import QRCodeNS from 'react-qr-code';
 const QRCode: typeof import('react-qr-code').default =
@@ -74,10 +75,10 @@ export function DepositPage() {
               { onSuccess: (h) => setTxHash(h) },
             )
           }
-          disabled={waiting}
+          disabled={waiting || SWAPS_DISABLED}
           className="neon-btn w-full mt-4"
         >
-          {waiting ? (isConfirming ? 'Waiting for confirmation…' : 'Confirm in wallet…') : 'Register'}
+          {SWAPS_DISABLED ? 'Swaps paused for upgrade' : waiting ? (isConfirming ? 'Waiting for confirmation…' : 'Confirm in wallet…') : 'Register'}
         </button>
         {waiting && (
           <p className="mt-3 mono text-[10px] tracking-[0.22em] uppercase text-white/35">

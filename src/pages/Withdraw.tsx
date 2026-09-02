@@ -1,3 +1,4 @@
+import { SWAPS_DISABLED } from '../lib/maintenance';
 import { useMemo, useState } from 'react';
 import { useAccount, useChainId, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
@@ -38,6 +39,7 @@ export function WithdrawPage() {
   const addrValid = dest.length === 0 || isValidNavioAddress(dest);
   const amountValid = amountStr.length === 0 || (amountNum > 0 && amountNum <= balanceNum);
   const canSubmit =
+    !SWAPS_DISABLED &&
     isConnected && !!token && dest.length > 0 && amountNum > 0 && addrValid && amountValid &&
     !isPending && !receipt.isLoading;
 
