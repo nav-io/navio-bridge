@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@aguycalled/bitcore-lib": "^0.15.117",
+    "@nav-io/navio-blsct": "^1.1.19",
     "@privy-io/react-auth": "^3.35.1",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@scure/base": "^2.2.0",

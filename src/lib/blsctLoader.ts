@@ -1,5 +1,5 @@
-import blsctJsUrl from 'navio-blsct/wasm/blsct.js?url';
-import blsctWasmUrl from 'navio-blsct/wasm/blsct.wasm?url';
+import blsctJsUrl from '@nav-io/navio-blsct/wasm/blsct.js?url';
+import blsctWasmUrl from '@nav-io/navio-blsct/wasm/blsct.wasm?url';
 import { AUDIT_CONFIG } from './contracts';
 
 let loadPromise: Promise<void> | null = null;
@@ -17,7 +17,7 @@ export async function ensureBlsctLoaded(): Promise<void> {
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
     const [blsct, wasmBinary] = await Promise.all([
-      import('navio-blsct/browser'),
+      import('@nav-io/navio-blsct/browser'),
       fetch(blsctWasmUrl).then((r) => r.arrayBuffer()),
       loadScript(blsctJsUrl),
     ]);
