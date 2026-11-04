@@ -4,6 +4,7 @@ import { useAccount, useChainId, useReadContract, useWriteContract, useWaitForTr
 import { formatUnits, parseUnits } from 'viem';
 import { EmptyState, Panel } from '../components/Panel';
 import { Intro } from '../components/Intro';
+import { LegacyLiquidity } from '../components/LegacyLiquidity';
 import { TOKEN_ABI, TOKEN_ADDRESSES, TOKEN_NAME, WITHDRAWAL_FEE } from '../lib/contracts';
 import { examplePlaceholder, isValidNavioAddress } from '../lib/deriveNavAddress';
 
@@ -78,6 +79,8 @@ export function WithdrawPage() {
   }
 
   return (
+    <div className="space-y-4">
+    <LegacyLiquidity />
     <Panel className="!p-0">
     <form onSubmit={onSubmit} className="p-6 sm:p-8 space-y-6">
       <div>
@@ -133,5 +136,6 @@ export function WithdrawPage() {
       </button>
     </form>
     </Panel>
+    </div>
   );
 }

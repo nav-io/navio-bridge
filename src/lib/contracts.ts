@@ -110,3 +110,106 @@ export const TOKEN_ABI = [
     type: 'event',
   },
 ] as const;
+
+/**
+ * Legacy wNAV liquidity program (old wnav-react bridge). Users may still have
+ * wNAV/WBNB PancakeSwap LP tokens in their wallet or staked in the farm.
+ * The bridge only exposes the exit path: unstake → remove liquidity → burn.
+ */
+export const LEGACY_LIQUIDITY: Record<
+  number,
+  { farm: Address; pid: bigint; lp: Address; router: Address; wbnb: Address }
+> = {
+  56: {
+    farm: '0xB5Dd037Af594F3eA98fC8067eaE1C82b71d7e1C8',
+    pid: 0n,
+    lp: '0xc31fc5D88871A3BAc6BEc7E6306e16e02053eEC1',
+    router: '0x10ED43C718714eb63d5aA57B78B54704E256024E', // PancakeSwap v2
+    wbnb: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+  },
+};
+
+export const LEGACY_FARM_ABI = [
+  {
+    inputs: [{ name: '_pid', type: 'uint256' }, { name: '_user', type: 'address' }],
+    name: 'deposited',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '_pid', type: 'uint256' }, { name: '_user', type: 'address' }],
+    name: 'pending',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '_pid', type: 'uint256' }, { name: '_amount', type: 'uint256' }],
+    name: 'withdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '_pid', type: 'uint256' }],
+    name: 'emergencyWithdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
+export const LEGACY_PAIR_ABI = [
+  {
+    inputs: [{ name: 'owner', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  { inputs: [], name: 'totalSupply', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'token0', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
+  {
+    inputs: [],
+    name: 'getReserves',
+    outputs: [
+      { name: 'reserve0', type: 'uint112' },
+      { name: 'reserve1', type: 'uint112' },
+      { name: 'blockTimestampLast', type: 'uint32' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }],
+    name: 'allowance',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'spender', type: 'address' }, { name: 'value', type: 'uint256' }],
+    name: 'approve',
+    outputs: [{ type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
+export const PANCAKE_ROUTER_ABI = [
+  {
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'liquidity', type: 'uint256' },
+      { name: 'amountTokenMin', type: 'uint256' },
+      { name: 'amountETHMin', type: 'uint256' },
+      { name: 'to', type: 'address' },
+      { name: 'deadline', type: 'uint256' },
+    ],
+    name: 'removeLiquidityETH',
+    outputs: [{ name: 'amountToken', type: 'uint256' }, { name: 'amountETH', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
